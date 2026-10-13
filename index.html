@@ -189,10 +189,14 @@ function render(){
   const my=P.filter(p=>adm||(me&&p.owner===me)||lm.includes(p.id));
   $('#mine').innerHTML=my.length?my.map(p=>{const a=A.filter(x=>x.pid===p.id).length,o=O.filter(x=>x.pid===p.id).length;return `<div class="card"><div class="b"><h3>${esc(p.name)}</h3><div class="stats"><div><b>${a}</b>${t('appsN')}</div><div><b>${o}</b>${t('ordsN')}</div></div><div class="row"><button class="btn" onclick="seeA('${p.id}')">${t('viewApps')}</button><button class="btn o" style="width:auto" onclick="del('${p.id}')">${t('del')}</button></div></div></div>`}).join(''):`<div class="empty">${t('noMine')}</div>`;
 }
+const DB_URL='https://sree3-49a25-default-rtdb.firebaseio.com';
+function restDb(U){const T=[],j=(p,o)=>fetch(U+'/'+p+'.json',o).then(r=>{if(!r.ok)throw 0;return r.json()}),k=x=>{T.forEach(f=>f());return x};
+return{collection:c=>({add:d=>j(c,{method:'POST',body:JSON.stringify(d)}).then(r=>k({id:r.name})),onSnapshot:cb=>{let last='';const tick=()=>j(c).then(o=>{const s=JSON.stringify(o);if(s!==last){last=s;cb({docs:Object.entries(o||{}).map(([id,v])=>({id,data:()=>v}))})}}).catch(()=>{});T.push(tick);tick();setInterval(()=>{if(!document.hidden)tick()},10000)}}),
+doc:p=>{const[c,i]=p.split('/');return{delete:()=>j(c+'/'+i,{method:'DELETE'}).then(k),update:d=>j(c+'/'+i,{method:'PATCH',body:JSON.stringify(d)}).then(k)}}}}
 const LS=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}};
 const sv=()=>{try{localStorage.setItem('s3p',JSON.stringify(P));localStorage.setItem('s3a',JSON.stringify(A));localStorage.setItem('s3o',JSON.stringify(O))}catch(e){toast(t('pubFail'))}};
 function local(){me='local';P=LS('s3p',[]);A=LS('s3a',[]);O=LS('s3o',[]);render()}
-(async()=>{try{const c=window.claude;db=await c.use('db');const u=await c.use('user');if(u){me=await u.id();adm=await u.isOwner()}}catch(e){}
+(async()=>{if(DB_URL){db=restDb(DB_URL.replace(/\/$/,''));try{me=localStorage.getItem('s3id')||('u'+Math.random().toString(36).slice(2)+Date.now().toString(36));localStorage.setItem('s3id',me)}catch(e){me='u'+Date.now()}}else try{const c=window.claude;db=await c.use('db');const u=await c.use('user');if(u){me=await u.id();adm=await u.isOwner()}}catch(e){}
 if(!db){local();return}
 const sn=(col,fn)=>db.collection(col).onSnapshot(s=>{fn(s.docs.map(d=>({id:d.id,...d.data()})));render()},()=>{});
 sn('projects',x=>{P=x.sort((a,b)=>(b.t||0)-(a.t||0))});sn('apps',x=>{A=x});sn('orders',x=>{O=x})})();
@@ -225,7 +229,7 @@ function seeA(id){const a=A.filter(x=>x.pid===id).sort((x,y)=>y.t-x.t),o=O.filte
 function del(id){open_(`<h3>${t('delQ')}</h3><div style="height:20px"></div><div class="row"><button class="btn" onclick="delGo('${id}')">${t('del')}</button><button class="btn o" onclick="close_()">${t('close')}</button></div>`)}
 function delGo(id){close_();if(db)db.doc('projects/'+id).delete().then(()=>{P=P.filter(p=>p.id!==id);render()}).catch(()=>toast(t('delFail')));else{P=P.filter(p=>p.id!==id);sv();render()}}
 $('#upbox').onclick=()=>$('#file').click();
-$('#file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,560/i.width);c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.7);setUp()};i.src=r.result};r.readAsDataURL(f)};
+$('#file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,420/i.width);c.width=i.width*s;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);img=c.toDataURL('image/jpeg',.6);setUp()};i.src=r.result};r.readAsDataURL(f)};
 $('#save').onclick=()=>{const name=$('#pn').value.trim(),type=$('#pt').value.trim(),desc=$('#pd').value.trim();let w=$('#pw').value.replace(/\D/g,'').replace(/^00/,'');
  if(!img)return toast(t('addPhoto'));if(!name||!type||!desc)return toast(t('need'));if(w.length<8)return toast(t('badWa'));
  if(!db){P.unshift({id:'p'+Date.now(),name,type,desc,wa:w,img,owner:me,t:Date.now()});sv();render();toast(t('pubOk'))}else
