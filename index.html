@@ -190,7 +190,7 @@ function render(){
   $('#mine').innerHTML=my.length?my.map(p=>{const a=A.filter(x=>x.pid===p.id).length,o=O.filter(x=>x.pid===p.id).length;return `<div class="card"><div class="b"><h3>${esc(p.name)}</h3><div class="stats"><div><b>${a}</b>${t('appsN')}</div><div><b>${o}</b>${t('ordsN')}</div></div><div class="row"><button class="btn" onclick="seeA('${p.id}')">${t('viewApps')}</button><button class="btn o" style="width:auto" onclick="del('${p.id}')">${t('del')}</button></div></div></div>`}).join(''):`<div class="empty">${t('noMine')}</div>`;
 }
 const DB_URL='https://sree3-49a25-default-rtdb.firebaseio.com';
-function restDb(U){const T=[],j=(p,o)=>fetch(U+'/'+p+'.json',o).then(r=>{if(!r.ok)throw 0;return r.json()}),k=x=>{T.forEach(f=>f());return x};
+function restDb(U){const T=[],j=(p,o)=>fetch(U+'/'+p+'.json',o).then(r=>{if(!r.ok)throw 'HTTP '+r.status;return r.json()}),k=x=>{T.forEach(f=>f());return x};
 return{collection:c=>({add:d=>j(c,{method:'POST',body:JSON.stringify(d)}).then(r=>k({id:r.name})),onSnapshot:cb=>{let last='';const tick=()=>j(c).then(o=>{const s=JSON.stringify(o);if(s!==last){last=s;cb({docs:Object.entries(o||{}).map(([id,v])=>({id,data:()=>v}))})}}).catch(()=>{});T.push(tick);tick();setInterval(()=>{if(!document.hidden)tick()},10000)}}),
 doc:p=>{const[c,i]=p.split('/');return{delete:()=>j(c+'/'+i,{method:'DELETE'}).then(k),update:d=>j(c+'/'+i,{method:'PATCH',body:JSON.stringify(d)}).then(k)}}}}
 const LS=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}};
@@ -233,7 +233,7 @@ $('#file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileR
 $('#save').onclick=()=>{const name=$('#pn').value.trim(),type=$('#pt').value.trim(),desc=$('#pd').value.trim();let w=$('#pw').value.replace(/\D/g,'').replace(/^00/,'');
  if(!img)return toast(t('addPhoto'));if(!name||!type||!desc)return toast(t('need'));if(w.length<8)return toast(t('badWa'));
  if(!db){P.unshift({id:'p'+Date.now(),name,type,desc,wa:w,img,owner:me,t:Date.now()});sv();render();toast(t('pubOk'))}else
- db.collection('projects').add({name,type,desc,wa:w,img,owner:me,t:Date.now()}).then(r=>{if(r&&r.id){lm.push(r.id);try{localStorage.setItem('s3m',JSON.stringify(lm))}catch(e){}}toast(t('pubOk'));render()}).catch(()=>toast(t('pubFail')));
+ db.collection('projects').add({name,type,desc,wa:w,img,owner:me,t:Date.now()}).then(r=>{if(r&&r.id){lm.push(r.id);try{localStorage.setItem('s3m',JSON.stringify(lm))}catch(e){}}toast(t('pubOk'));render()}).catch(e=>toast(t('pubFail')+' ['+(e&&e.message||e)+']'));
  img='';$('#pn').value=$('#pt').value=$('#pd').value=$('#pw').value='';setUp()};
 apply();
 try{const f=document.createElement('link');f.rel='stylesheet';f.href='https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap';document.head.appendChild(f)}catch(e){}
